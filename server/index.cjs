@@ -3,12 +3,17 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
+const { signToken } = require("./auth.cjs");
 const bookingsRouter = require("./routes/bookings.cjs");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 全局错误处理：未捕获的异常
+// 管理员账号（生产环境请通过环境变量设置）
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASS = process.env.ADMIN_PASS || "admin123";
+
+// 全局错误处理
 process.on("uncaughtException", (err) => {
   console.error("[FATAL] Uncaught Exception:", err);
   process.exit(1);
@@ -22,15 +27,27 @@ process.on("unhandledRejection", (reason, promise) => {
 app.use(cors());
 app.use(express.json());
 
-// API 路由
+// === API 路由 ===
+
+// 预约相关（ bookings.cjs 内部已区分公开/需认证 ）
 app.use("/api/bookings", bookingsRouter);
 
-// 健康检查端点（Zeabur 等平台常用）
+// 管理员登录
+app.post("/api/admin/login", (req, res) => {
+  const { username, password } = req.body;
+  if (username !== ADMIN_USER || password !== ADMIN_PASS) {
+    return res.status(401).json({ error: "用户名或密码错误" });
+  }
+  const token = signToken({ username, role: "admin" });
+  res.json({ token, username });
+});
+
+// 健康检查
 app.get("/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
 });
 
-// 查找 dist/ 目录的辅助函数
+// === 静态文件 ===
 function findDistPath() {
   const candidates = [
     path.join(__dirname, "../dist"),
@@ -45,7 +62,6 @@ function findDistPath() {
 
 let distPath = findDistPath();
 
-// 如果 dist/ 不存在，尝试自动构建（Git 部署时的保险措施）
 if (!distPath) {
   console.warn("[WARN] dist/ not found. Attempting auto-build...");
   try {
@@ -63,7 +79,6 @@ if (!distPath) {
   }
 }
 
-// Serve 静态文件
 if (distPath) {
   console.log("[OK] Serving static files from:", distPath);
   app.use(express.static(distPath));
@@ -71,22 +86,9 @@ if (distPath) {
     res.sendFile(path.join(distPath, "index.html"));
   });
 } else {
-  console.error("[ERROR] dist/ folder not found. Searched paths:");
-  [
-    path.join(__dirname, "../dist"),
-    path.join(__dirname, "../../dist"),
-    path.join(process.cwd(), "dist"),
-  ].forEach((p) => console.error("  -", p));
-  console.error("[ERROR] __dirname:", __dirname);
-  console.error("[ERROR] cwd:", process.cwd());
-  console.error("[ERROR] Please run 'npm run build' to generate dist/.");
-
+  console.error("[ERROR] dist/ folder not found.");
   app.get("/", (req, res) => {
-    res.status(503).send(`
-      <h1>503 - Frontend Not Built</h1>
-      <p>The server is running, but the frontend <code>dist/</code> folder was not found.</p>
-      <p>Fix: Run <code>npm run build</code> to generate the <code>dist/</code> folder, then redeploy.</p>
-    `);
+    res.status(503).send(`<h1>503 - Frontend Not Built</h1><p>Run npm run build to generate dist/.</p>`);
   });
 }
 
@@ -96,7 +98,6 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`[OK] API: http://0.0.0.0:${PORT}/api/bookings`);
 });
 
-// 优雅关闭
 process.on("SIGTERM", () => {
   console.log("[INFO] SIGTERM received, shutting down gracefully");
   server.close(() => {

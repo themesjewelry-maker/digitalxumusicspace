@@ -546,7 +546,8 @@ function MentorsSection() {
 /*  Booking Section                                                    */
 /* ------------------------------------------------------------------ */
 function BookingSection() {
-  const [form, setForm] = useState({ name: "", phone: "", course: "", note: "" });
+  const [form, setForm] = useState({ name: "", phone: "", course: "", duration: "", note: "" });
+  const [durationMode, setDurationMode] = useState<"longterm" | "months" | "">("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -571,7 +572,8 @@ function BookingSection() {
       if (!res.ok) throw new Error("提交失败");
       setStatus("success");
       setMessage("预约提交成功！我们将在24小时内与您联系。");
-      setForm({ name: "", phone: "", course: "", note: "" });
+      setForm({ name: "", phone: "", course: "", duration: "", note: "" });
+      setDurationMode("");
     } catch (err) {
       setStatus("error");
       setMessage("提交失败，请检查网络或稍后重试");
@@ -660,6 +662,56 @@ function BookingSection() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-[#86868B] mb-2 uppercase tracking-wider">
+                期望学习时长
+              </label>
+              <div className="flex flex-wrap gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDurationMode("longterm");
+                    setForm({ ...form, duration: "长期系统学习" });
+                  }}
+                  className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+                    durationMode === "longterm"
+                      ? "bg-[#1D1D1F] text-white"
+                      : "bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#1D1D1F] hover:text-white"
+                  }`}
+                >
+                  长期系统学习
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDurationMode("months");
+                    setForm({ ...form, duration: "" });
+                  }}
+                  className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
+                    durationMode === "months"
+                      ? "bg-[#1D1D1F] text-white"
+                      : "bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#1D1D1F] hover:text-white"
+                  }`}
+                >
+                  具体月份
+                </button>
+              </div>
+              {durationMode === "months" && (
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={1}
+                    max={120}
+                    value={form.duration.replace(/[^0-9]/g, "")}
+                    onChange={(e) => setForm({ ...form, duration: e.target.value ? `${e.target.value}个月` : "" })}
+                    placeholder="例如：6"
+                    className="flex-1 px-4 py-3 rounded-xl bg-[#F5F5F7] border-0 text-[#1D1D1F] placeholder:text-[#86868B]/60 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D1D1F]/20 transition-all"
+                  />
+                  <span className="text-sm text-[#86868B]">个月</span>
+                </div>
+              )}
             </div>
 
             <div>

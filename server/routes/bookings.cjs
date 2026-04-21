@@ -1,10 +1,11 @@
 const express = require("express");
 const db = require("../db.cjs");
+const { requireAuth } = require("../auth.cjs");
 const router = express.Router();
 
-// POST /api/bookings — 提交新预约
+// POST /api/bookings — 提交新预约（公开，无需登录）
 router.post("/", (req, res) => {
-  const { name, phone, course, note } = req.body;
+  const { name, phone, course, duration, note } = req.body;
 
   if (!name || !phone || !course) {
     return res.status(400).json({ error: "姓名、电话和课程为必填项" });
@@ -12,14 +13,15 @@ router.post("/", (req, res) => {
 
   try {
     const stmt = db.prepare(
-      `INSERT INTO bookings (name, phone, course, note) VALUES (?, ?, ?, ?)`
+      `INSERT INTO bookings (name, phone, course, duration, note) VALUES (?, ?, ?, ?, ?)`
     );
-    const result = stmt.run(name, phone, course, note || "");
+    const result = stmt.run(name, phone, course, duration || "", note || "");
     res.status(201).json({
       id: result.lastInsertRowid,
       name,
       phone,
       course,
+      duration,
       note,
       status: "pending",
       created_at: new Date().toISOString(),
@@ -30,8 +32,8 @@ router.post("/", (req, res) => {
   }
 });
 
-// GET /api/bookings — 获取所有预约
-router.get("/", (req, res) => {
+// GET /api/bookings — 获取所有预约（需要登录）
+router.get("/", requireAuth, (req, res) => {
   try {
     const stmt = db.prepare(
       `SELECT * FROM bookings ORDER BY created_at DESC`
@@ -44,8 +46,8 @@ router.get("/", (req, res) => {
   }
 });
 
-// PATCH /api/bookings/:id — 更新状态
-router.patch("/:id", (req, res) => {
+// PATCH /api/bookings/:id — 更新状态（需要登录）
+router.patch("/:id", requireAuth, (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 

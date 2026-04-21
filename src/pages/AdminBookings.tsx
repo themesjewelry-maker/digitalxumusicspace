@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, CheckCircle2, Clock, Loader2, Phone } from "lucide-react";
+import { ArrowLeft, Calendar, CheckCircle2, Loader2, LogOut, Lock } from "lucide-react";
 
 interface Booking {
   id: number;
   name: string;
   phone: string;
   course: string;
+  duration: string;
   note: string;
   status: string;
   created_at: string;
@@ -20,27 +21,79 @@ const statusMap: Record<string, { label: string; color: string }> = {
 
 export default function AdminBookings() {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // 登录状态
+  const [token, setToken] = useState(localStorage.getItem("admin_token") || "");
+  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  const isLoggedIn = !!token;
+
+  // 获取预约列表
   useEffect(() => {
-    fetch("/api/bookings")
-      .then((res) => res.json())
+    if (!isLoggedIn) return;
+    setLoading(true);
+    setError("");
+    fetch("/api/bookings", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        if (res.status === 401) {
+          localStorage.removeItem("admin_token");
+          setToken("");
+          throw new Error("登录已过期，请重新登录");
+        }
+        if (!res.ok) throw new Error("加载失败");
+        return res.json();
+      })
       .then((data) => {
         setBookings(data);
         setLoading(false);
       })
-      .catch(() => {
-        setError("无法连接后端服务器，请确认 server 已启动");
+      .catch((err) => {
+        setError(err.message || "无法连接后端服务器");
         setLoading(false);
       });
-  }, []);
+  }, [isLoggedIn, token]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError("");
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loginForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "登录失败");
+      localStorage.setItem("admin_token", data.token);
+      setToken(data.token);
+    } catch (err: any) {
+      setLoginError(err.message);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("admin_token");
+    setToken("");
+    setBookings([]);
+  };
 
   const updateStatus = async (id: number, status: string) => {
     try {
       const res = await fetch(`/api/bookings/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error("更新失败");
@@ -52,6 +105,63 @@ export default function AdminBookings() {
     }
   };
 
+  // 登录页面
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center px-6">
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');html{scroll-behavior:smooth;}body{font-family:'Inter',system-ui,sans-serif;}`}</style>
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <Lock className="w-8 h-8 text-[#1D1D1F] mx-auto mb-3" />
+            <h1 className="text-xl font-semibold text-[#1D1D1F] tracking-tight">管理后台登录</h1>
+            <p className="text-sm text-[#86868B] mt-1">请输入管理员账号</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="bg-white rounded-2xl border border-[#E5E5E5] p-6 space-y-4">
+            {loginError && (
+              <div className="p-3 rounded-xl bg-red-50 text-red-700 text-sm text-center">{loginError}</div>
+            )}
+            <div>
+              <label className="block text-xs font-medium text-[#86868B] mb-2 uppercase tracking-wider">用户名</label>
+              <input
+                type="text"
+                value={loginForm.username}
+                onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-[#F5F5F7] border-0 text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#1D1D1F]/20 transition-all"
+                placeholder="admin"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#86868B] mb-2 uppercase tracking-wider">密码</label>
+              <input
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-[#F5F5F7] border-0 text-[#1D1D1F] text-sm focus:outline-none focus:ring-2 focus:ring-[#1D1D1F]/20 transition-all"
+                placeholder="admin123"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full py-3 rounded-xl bg-[#1D1D1F] text-white text-sm font-semibold tracking-wide hover:bg-[#333] transition-colors disabled:opacity-60"
+            >
+              {loginLoading ? "登录中..." : "登录"}
+            </button>
+          </form>
+
+          <div className="text-center mt-6">
+            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-[#86868B] hover:text-[#1D1D1F] transition-colors">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              返回首页
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 后台管理页面
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');html{scroll-behavior:smooth;}body{font-family:'Inter',system-ui,sans-serif;}`}</style>
@@ -61,9 +171,18 @@ export default function AdminBookings() {
           <Link to="/" className="text-sm font-semibold text-[#1D1D1F] tracking-tight">
             琴鸣声乐工作室
           </Link>
-          <span className="text-[10px] tracking-[0.2em] uppercase text-[#86868B]">
-            预约管理后台
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] tracking-[0.2em] uppercase text-[#86868B]">
+              预约管理后台
+            </span>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1 text-xs text-[#86868B] hover:text-red-600 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              退出
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -115,6 +234,7 @@ export default function AdminBookings() {
                     <th className="px-5 py-3.5 font-medium text-[#86868B]">姓名</th>
                     <th className="px-5 py-3.5 font-medium text-[#86868B]">电话</th>
                     <th className="px-5 py-3.5 font-medium text-[#86868B]">课程</th>
+                    <th className="px-5 py-3.5 font-medium text-[#86868B]">期望时长</th>
                     <th className="px-5 py-3.5 font-medium text-[#86868B]">备注</th>
                     <th className="px-5 py-3.5 font-medium text-[#86868B]">状态</th>
                     <th className="px-5 py-3.5 font-medium text-[#86868B]">提交时间</th>
@@ -131,7 +251,10 @@ export default function AdminBookings() {
                           {b.course}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-[#86868B] max-w-[240px]">
+                      <td className="px-5 py-4 text-[#86868B]">
+                        {b.duration || "—"}
+                      </td>
+                      <td className="px-5 py-4 text-[#86868B] max-w-[200px]">
                         <div className="whitespace-pre-wrap break-words text-xs leading-relaxed">
                           {b.note || "—"}
                         </div>
