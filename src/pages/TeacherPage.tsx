@@ -161,6 +161,8 @@ function HeroSection() {
   return (
     <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#FAFAFA]">
       <div className="absolute inset-0 bg-gradient-to-br from-[#f5f0eb] via-[#faf8f5] to-[#eef2f5]" />
+      {/* Top dark overlay for navigation visibility */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/30 to-transparent z-10 pointer-events-none" />
 
       <motion.div style={{ y, opacity }} className="relative z-10 text-center px-6 max-w-3xl">
         <motion.div

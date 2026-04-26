@@ -146,7 +146,7 @@ function SectionDesc({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Hero Section                                                       */
+/*  Hero Section  —  V3 电影级首屏                                       */
 /* ------------------------------------------------------------------ */
 function HeroSection() {
   const ref = useRef(null);
@@ -156,11 +156,14 @@ function HeroSection() {
   });
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 1.15]);
+  const textY = useTransform(scrollYProgress, [0, 0.5], ["0%", "15%"]);
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.8], [0.6, 1]);
 
   return (
-    <section ref={ref} className="relative h-screen w-full overflow-hidden">
-      {/* Video Background */}
-      <motion.div style={{ y }} className="absolute inset-0 w-full h-[120%]">
+    <section ref={ref} className="relative h-screen w-full overflow-hidden bg-[#0A0A0A]">
+      {/* Video Background with cinematic scale */}
+      <motion.div style={{ y, scale }} className="absolute inset-0 w-full h-[120%]">
         <video
           autoPlay
           loop
@@ -170,59 +173,137 @@ function HeroSection() {
           className="absolute inset-0 w-full h-full object-cover"
         >
           <source
-            src="https://cdn.coverr.co/videos/coverr-playing-the-piano-2535/1080p.mp4"
+            src="/videos/hero-piano.mp4"
             type="video/mp4"
           />
         </video>
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-black/30" />
+        {/* Cinematic gradient overlay — darkens on scroll */}
+        <motion.div
+          style={{ opacity: overlayOpacity }}
+          className="absolute inset-0 bg-gradient-to-b from-[#0A0A0A]/30 via-[#0A0A0A]/60 to-[#0A0A0A]"
+        />
       </motion.div>
 
-      {/* Hero Content */}
+      {/* Subtle 12-column grid decoration */}
+      <div className="absolute top-0 left-0 w-full h-full z-10 pointer-events-none">
+        <div className="max-w-[1400px] mx-auto h-full grid grid-cols-12 gap-4 px-6 opacity-[0.03]">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="h-full border-l border-white" />
+          ))}
+        </div>
+      </div>
+
+      {/* Hero Content — Asymmetric, left-aligned, layered */}
       <motion.div
-        style={{ opacity }}
-        className="relative z-10 flex flex-col items-center justify-center h-full text-center px-6"
+        style={{ opacity, y: textY }}
+        className="relative z-20 flex flex-col justify-center h-full px-8 sm:px-16 md:px-24 lg:px-32 xl:px-40 max-w-[1600px] mx-auto"
       >
+        {/* Top amber label with line */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" as const }}
-          className="backdrop-blur-md bg-white/10 rounded-3xl px-8 py-10 sm:px-14 sm:py-14 border border-white/20 shadow-2xl"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 1, delay: 0.4 }}
+          className="mb-10"
         >
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="inline-block text-[10px] sm:text-xs font-semibold tracking-[0.3em] uppercase text-white/70 mb-4"
-          >
-            深圳 · 高端一对一音乐教育
-          </motion.span>
-          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[88px] font-semibold text-white tracking-tight leading-[1.05] mb-4">
-            琴鸣声乐
-          </h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-white/90 font-light tracking-wide mb-2">
-            让每一次发声，都成为艺术
-          </p>
-          <p className="text-sm sm:text-base text-white/60 max-w-md mx-auto leading-relaxed">
-            专注钢琴与声乐一对一私教 · 深圳福田中心区
-          </p>
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-[1px] bg-[#D4AF37]" />
+            <span className="text-[11px] font-medium tracking-[0.4em] uppercase text-[#D4AF37]">
+              深圳 · 高端一对一音乐教育
+            </span>
+          </div>
         </motion.div>
 
-        {/* Scroll Indicator */}
+        {/* Main Title — Playfair Display, dramatic scale */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5, duration: 1 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2"
+          initial={{ opacity: 0, y: 60 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.4, delay: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          className="mb-12"
         >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="w-6 h-10 rounded-full border-2 border-white/40 flex justify-center pt-2"
-          >
-            <div className="w-1 h-2 bg-white/60 rounded-full" />
-          </motion.div>
+          <h1 className="font-serif text-[#F8F6F0] leading-[0.92] tracking-tight">
+            <span className="block text-6xl sm:text-7xl md:text-8xl lg:text-[120px] xl:text-[140px] font-medium">
+              琴鸣声乐
+            </span>
+            <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal italic mt-5 text-[#F8F6F0]/60">
+              工作室
+            </span>
+          </h1>
         </motion.div>
+
+        {/* Subtitle & description */}
+        <motion.p
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 1.0 }}
+          className="text-xl sm:text-2xl md:text-3xl text-[#A09B8C] font-light tracking-wide mb-3 max-w-xl"
+        >
+          让每一次发声，都成为艺术
+        </motion.p>
+
+        <motion.p
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 1.15 }}
+          className="text-sm sm:text-base text-[#A09B8C]/50 max-w-md leading-relaxed mb-14"
+        >
+          专注钢琴与声乐一对一私教 · 深圳福田中心区
+        </motion.p>
+
+        {/* CTA — Minimal amber gold */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 1.3 }}
+          className="flex items-center gap-8"
+        >
+          <a
+            href="#booking"
+            className="group inline-flex items-center gap-3 text-[13px] tracking-[0.25em] uppercase text-[#D4AF37] border border-[#D4AF37]/30 px-10 py-4 hover:bg-[#D4AF37] hover:text-[#0A0A0A] hover:border-[#D4AF37] transition-all duration-500"
+          >
+            预约试听
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-300" />
+          </a>
+          <a
+            href="#philosophy"
+            className="text-sm text-[#A09B8C]/50 hover:text-[#F8F6F0] transition-colors duration-300 tracking-wide"
+          >
+            了解更多
+          </a>
+        </motion.div>
+      </motion.div>
+
+      {/* Scroll Indicator — left side, refined */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2, duration: 1 }}
+        className="absolute bottom-12 left-8 sm:left-16 md:left-24 lg:left-32 xl:left-40 z-20"
+      >
+        <motion.div
+          animate={{ y: [0, 6, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          className="flex flex-col items-center gap-3"
+        >
+          <span className="text-[9px] tracking-[0.3em] uppercase text-[#A09B8C]/30" style={{ writingMode: 'vertical-rl' }}>
+            Scroll
+          </span>
+          <div className="w-[1px] h-12 bg-gradient-to-b from-[#D4AF37]/40 to-transparent" />
+        </motion.div>
+      </motion.div>
+
+      {/* Right side decorative vertical text */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.8, duration: 1.2 }}
+        className="absolute right-8 sm:right-16 md:right-24 bottom-1/3 z-20 hidden xl:block"
+      >
+        <div
+          className="text-[10px] tracking-[0.5em] uppercase text-[#A09B8C]/15"
+          style={{ writingMode: 'vertical-rl' }}
+        >
+          Est. 2018 · Shenzhen
+        </div>
       </motion.div>
     </section>
   );

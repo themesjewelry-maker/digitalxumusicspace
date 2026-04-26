@@ -26,6 +26,7 @@ try {
   throw err;
 }
 
+// 创建表（如果不存在）
 try {
   db.exec(`
     CREATE TABLE IF NOT EXISTS bookings (
@@ -33,6 +34,7 @@ try {
       name TEXT NOT NULL,
       phone TEXT NOT NULL,
       course TEXT NOT NULL,
+      duration TEXT,
       note TEXT,
       status TEXT DEFAULT 'pending',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -42,6 +44,18 @@ try {
 } catch (err) {
   console.error("[DB] Failed to create table:", err.message);
   throw err;
+}
+
+// 迁移：为旧表添加 duration 字段（如果不存在）
+try {
+  const columns = db.prepare("PRAGMA table_info(bookings)").all();
+  const hasDuration = columns.some((col) => col.name === "duration");
+  if (!hasDuration) {
+    db.exec("ALTER TABLE bookings ADD COLUMN duration TEXT");
+    console.log("[DB] Migrated: added 'duration' column");
+  }
+} catch (err) {
+  console.error("[DB] Migration failed:", err.message);
 }
 
 module.exports = db;
